@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
-import { Sale, SaleType, PRODUCTS } from '../types';
+import { Sale, SaleType, PRODUCTS } from '../types.ts';
 
 interface SalesFormProps {
   onAddSale: (sale: Sale) => void;

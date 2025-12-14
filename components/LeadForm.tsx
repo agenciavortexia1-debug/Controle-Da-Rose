@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X, UserPlus } from 'lucide-react';
-import { Lead } from '../types';
+import { Lead } from '../types.ts';
 
 interface LeadFormProps {
   onAddLead: (lead: Lead) => void;

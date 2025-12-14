@@ -26,11 +26,11 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Sale, SalesSummary, Lead, InventoryItem, PRODUCTS } from './types';
-import { SalesForm } from './components/SalesForm';
-import { LeadForm } from './components/LeadForm';
-import { StatsCard } from './components/StatsCard';
-import * as db from './services/db';
+import { Sale, SalesSummary, Lead, InventoryItem, PRODUCTS } from './types.ts';
+import { SalesForm } from './components/SalesForm.tsx';
+import { LeadForm } from './components/LeadForm.tsx';
+import { StatsCard } from './components/StatsCard.tsx';
+import * as db from './services/db.ts';
 
 const App: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);

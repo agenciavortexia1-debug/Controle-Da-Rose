@@ -1,5 +1,4 @@
-
-import { Sale, Lead, InventoryItem, PRODUCTS } from '../types';
+import { Sale, Lead, InventoryItem, PRODUCTS } from '../types.ts';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, Timestamp, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
