@@ -1,186 +1,207 @@
-import { Sale, Lead, InventoryItem, PRODUCTS } from '../types.ts';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, Timestamp, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
-// --- CONFIGURAÇÃO DO GOOGLE FIREBASE ---
-const USE_GOOGLE_FIREBASE = false;
+import { createClient } from '@supabase/supabase-js';
+import { Sale, Lead, InventoryItem } from '../types.ts';
 
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY_AQUI",
-  authDomain: "seu-projeto.firebaseapp.com",
-  projectId: "seu-projeto",
-  storageBucket: "seu-projeto.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
-};
+const SUPABASE_URL = 'https://xjmtxshvpwcyrfbxsmpj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbXR4c2h2cHdjeXJmYnhzbXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MTIyNDksImV4cCI6MjA4NDE4ODI0OX0.Qlo4xPAhPtRFRzkcC7p-aoHTDCdEdnmTuuzTOXynYRQ';
 
-let db: any;
-let salesCollection: any;
-let leadsCollection: any;
-let inventoryCollection: any;
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-if (USE_GOOGLE_FIREBASE) {
-  try {
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    salesCollection = collection(db, 'sales');
-    leadsCollection = collection(db, 'leads');
-    inventoryCollection = collection(db, 'inventory');
-  } catch (e) {
-    console.error("Erro ao inicializar Firebase.", e);
-  }
-}
+// Helper para garantir que campos do Supabase (NUMERIC) sejam tratados como números no JS
+const toNum = (val: any) => val === null || val === undefined ? 0 : Number(val);
 
 // --- MÉTODOS DE VENDAS ---
 
 export const getSales = async (): Promise<Sale[]> => {
-  if (USE_GOOGLE_FIREBASE) {
-    try {
-      const snapshot = await getDocs(salesCollection);
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Sale[];
-    } catch (error) {
-      console.error("Erro ao buscar do Firebase:", error);
+  try {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Erro Detalhado Supabase Sales:', error.message, error.details, error.hint);
       return [];
     }
-  } else {
-    const stored = localStorage.getItem('sales_db');
-    if (!stored) return [];
-    return JSON.parse(stored);
+
+    return (data || []).map(item => ({
+      id: item.id,
+      clientName: item.client_name,
+      productName: item.product_name,
+      amount: toNum(item.amount),
+      cost: toNum(item.cost),
+      freight: toNum(item.freight),
+      commissionRate: toNum(item.commission_rate),
+      commissionValue: toNum(item.commission_value),
+      date: item.date,
+      status: item.status,
+      saleType: item.sale_type,
+      adCost: toNum(item.ad_cost),
+      discount: toNum(item.discount)
+    })) as Sale[];
+  } catch (err: any) {
+    console.error('Erro fatal ao buscar vendas:', err.message);
+    return [];
   }
 };
 
 export const addSale = async (sale: Sale): Promise<Sale> => {
-  if (USE_GOOGLE_FIREBASE) {
-    const { id, ...saleData } = sale; 
-    const docRef = await addDoc(salesCollection, saleData);
-    return { ...sale, id: docRef.id };
-  } else {
-    const currentSales = await getSales();
-    const newSales = [sale, ...currentSales];
-    localStorage.setItem('sales_db', JSON.stringify(newSales));
-    return sale;
+  const { data, error } = await supabase
+    .from('sales')
+    .insert([{
+      id: sale.id, // Mantém o ID gerado no frontend para sincronia
+      client_name: sale.clientName,
+      product_name: sale.productName,
+      amount: sale.amount,
+      cost: sale.cost,
+      freight: sale.freight,
+      commission_rate: sale.commissionRate,
+      commission_value: sale.commissionValue,
+      date: sale.date,
+      status: sale.status,
+      sale_type: sale.saleType,
+      ad_cost: sale.adCost,
+      discount: sale.discount
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro ao adicionar venda:', error.message);
+    throw error;
   }
+  return data as unknown as Sale;
 };
 
 export const deleteSale = async (id: string): Promise<void> => {
-  if (USE_GOOGLE_FIREBASE) {
-    await deleteDoc(doc(db, 'sales', id));
-  } else {
-    const currentSales = await getSales();
-    const newSales = currentSales.filter(s => s.id !== id);
-    localStorage.setItem('sales_db', JSON.stringify(newSales));
-  }
+  const { error } = await supabase.from('sales').delete().eq('id', id);
+  if (error) console.error('Erro ao deletar venda:', error.message);
 };
 
-// --- MÉTODOS DE LEADS (CLIENTES PENDENTES) ---
+// --- MÉTODOS DE LEADS ---
 
 export const getLeads = async (): Promise<Lead[]> => {
-  if (USE_GOOGLE_FIREBASE) {
-    try {
-      const snapshot = await getDocs(leadsCollection);
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Lead[];
-    } catch (error) {
+  try {
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro Supabase Leads:', error.message);
       return [];
     }
-  } else {
-    const stored = localStorage.getItem('leads_db');
-    if (!stored) return [];
-    return JSON.parse(stored);
+    
+    return (data || []).map(item => ({
+      id: item.id,
+      clientName: item.client_name,
+      phone: item.phone,
+      productInterest: item.product_interest,
+      expectedDate: item.expected_date,
+      notes: item.notes,
+      createdAt: item.created_at,
+      status: item.status
+    })) as Lead[];
+  } catch (err) {
+    return [];
   }
 };
 
 export const addLead = async (lead: Lead): Promise<Lead> => {
-  if (USE_GOOGLE_FIREBASE) {
-    const { id, ...leadData } = lead;
-    const docRef = await addDoc(leadsCollection, leadData);
-    return { ...lead, id: docRef.id };
-  } else {
-    const currentLeads = await getLeads();
-    const newLeads = [lead, ...currentLeads];
-    localStorage.setItem('leads_db', JSON.stringify(newLeads));
-    return lead;
-  }
+  const { data, error } = await supabase
+    .from('leads')
+    .insert([{
+      id: lead.id,
+      client_name: lead.clientName,
+      phone: lead.phone,
+      product_interest: lead.productInterest,
+      expected_date: lead.expectedDate,
+      notes: lead.notes,
+      status: lead.status
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as unknown as Lead;
 };
 
 export const deleteLead = async (id: string): Promise<void> => {
-  if (USE_GOOGLE_FIREBASE) {
-    await deleteDoc(doc(db, 'leads', id));
-  } else {
-    const currentLeads = await getLeads();
-    const newLeads = currentLeads.filter(l => l.id !== id);
-    localStorage.setItem('leads_db', JSON.stringify(newLeads));
-  }
+  await supabase.from('leads').delete().eq('id', id);
 };
-
-export const updateLeadStatus = async (id: string, status: Lead['status']): Promise<void> => {
-    if (USE_GOOGLE_FIREBASE) {
-        await updateDoc(doc(db, 'leads', id), { status });
-    } else {
-        const currentLeads = await getLeads();
-        const updatedLeads = currentLeads.map(l => l.id === id ? { ...l, status } : l);
-        localStorage.setItem('leads_db', JSON.stringify(updatedLeads));
-    }
-}
 
 // --- MÉTODOS DE ESTOQUE ---
 
 export const getInventory = async (): Promise<InventoryItem[]> => {
-  if (USE_GOOGLE_FIREBASE) {
-    try {
-        const snapshot = await getDocs(inventoryCollection);
-        const dbItems = snapshot.docs.map((doc: any) => ({
-            productName: doc.id,
-            ...doc.data()
-        })) as InventoryItem[];
-        
-        // Merge with pre-defined products to ensure all are listed
-        return PRODUCTS.map(p => {
-            const found = dbItems.find(i => i.productName === p.name);
-            return found || { productName: p.name, quantity: 0 };
-        });
-    } catch (error) {
-        console.error("Erro ao buscar estoque", error);
-        return PRODUCTS.map(p => ({ productName: p.name, quantity: 0 }));
+  try {
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .order('product_name', { ascending: true });
+
+    if (error) {
+      console.error('Erro Supabase Inventory:', error.message);
+      return [];
     }
-  } else {
-    const stored = localStorage.getItem('inventory_db');
-    const storedInventory: InventoryItem[] = stored ? JSON.parse(stored) : [];
     
-    // Ensure all fixed products exist
-    return PRODUCTS.map(p => {
-        const found = storedInventory.find(i => i.productName === p.name);
-        return found || { productName: p.name, quantity: 0 };
-    });
+    return (data || []).map(item => ({
+      id: item.id,
+      productName: item.product_name,
+      quantity: toNum(item.quantity),
+      costPrice: toNum(item.cost_price),
+      defaultSellPrice: toNum(item.default_sell_price)
+    })) as InventoryItem[];
+  } catch (err) {
+    return [];
   }
 };
 
-export const updateStock = async (productName: string, quantityChange: number): Promise<InventoryItem[]> => {
-    // Only track fixed products
-    if (!PRODUCTS.find(p => p.name === productName)) {
-        return getInventory();
-    }
+export const addOrUpdateProduct = async (item: InventoryItem): Promise<InventoryItem[]> => {
+  const { data: existing } = await supabase
+    .from('inventory')
+    .select('*')
+    .eq('product_name', item.productName)
+    .maybeSingle();
 
-    if (USE_GOOGLE_FIREBASE) {
-        // Implementation for Firebase requires doc ref logic matching productName
-        // Simplified for now assuming local storage primary as per context
-        return []; 
-    } else {
-        let inventory = await getInventory();
-        const index = inventory.findIndex(i => i.productName === productName);
-        
-        if (index >= 0) {
-            inventory[index].quantity += quantityChange;
-        } else {
-            inventory.push({ productName, quantity: quantityChange });
-        }
-        
-        localStorage.setItem('inventory_db', JSON.stringify(inventory));
-        return inventory;
-    }
+  if (existing) {
+    await supabase
+      .from('inventory')
+      .update({
+        quantity: item.quantity,
+        cost_price: item.costPrice,
+        default_sell_price: item.defaultSellPrice
+      })
+      .eq('id', existing.id);
+  } else {
+    await supabase
+      .from('inventory')
+      .insert([{
+        product_name: item.productName,
+        quantity: item.quantity,
+        cost_price: item.costPrice,
+        default_sell_price: item.defaultSellPrice
+      }]);
+  }
+  
+  return getInventory();
+};
+
+export const deleteProduct = async (id: string): Promise<InventoryItem[]> => {
+  await supabase.from('inventory').delete().eq('id', id);
+  return getInventory();
+};
+
+export const updateStockQuantity = async (productName: string, quantityChange: number): Promise<void> => {
+  const { data: existing } = await supabase
+    .from('inventory')
+    .select('id, quantity')
+    .eq('product_name', productName)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('inventory')
+      .update({ quantity: (existing.quantity || 0) + quantityChange })
+      .eq('id', existing.id);
+  }
 };
