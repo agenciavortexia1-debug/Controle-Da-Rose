@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
@@ -11,14 +12,14 @@ interface StatsCardProps {
 
 export const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, colorClass, trend }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col md:flex-row md:items-start md:justify-between transition-transform">
-      <div className="order-2 md:order-1 mt-2 md:mt-0">
-        <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">{title}</p>
-        <h3 className="text-lg md:text-2xl font-bold text-gray-900 truncate">{value}</h3>
-        {trend && <p className="text-[10px] md:text-xs text-green-600 mt-1 font-medium">{trend}</p>}
+    <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100 flex flex-col items-center text-center sm:text-left sm:items-start transition-all hover:shadow-md">
+      <div className={`p-2.5 rounded-xl ${colorClass} bg-opacity-15 mb-3`}>
+        <Icon size={20} className={colorClass.replace('bg-', 'text-')} />
       </div>
-      <div className={`order-1 md:order-2 self-start p-2 md:p-3 rounded-lg ${colorClass} bg-opacity-20`}>
-        <Icon className={`w-5 h-5 md:w-6 md:h-6 ${colorClass.replace('bg-', 'text-')}`} />
+      <div>
+        <p className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-wider mb-1">{title}</p>
+        <h3 className="text-sm md:text-xl font-black text-gray-900 truncate">{value}</h3>
+        {trend && <p className="text-[9px] text-emerald-600 mt-1 font-bold">{trend}</p>}
       </div>
     </div>
   );

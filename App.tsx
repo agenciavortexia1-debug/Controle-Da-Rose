@@ -23,7 +23,7 @@ import {
   ChevronRight,
   FileText
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { Sale, SalesSummary, Lead, InventoryItem } from './types';
 import { SalesForm } from './components/SalesForm';
 import { LeadForm } from './components/LeadForm';
@@ -123,7 +123,9 @@ const App: React.FC = () => {
     filteredByDateSales.forEach(sale => {
       data[sale.productName] = (data[sale.productName] || 0) + sale.amount;
     });
-    return Object.keys(data).map(name => ({ name, value: data[name] }));
+    return Object.keys(data)
+      .map(name => ({ name, value: data[name] }))
+      .sort((a, b) => b.value - a.value);
   }, [filteredByDateSales]);
 
   const handleAddSale = async (newSale: Sale) => {
@@ -198,7 +200,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-24 md:pb-0">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-24 md:pb-0 overflow-hidden">
+      {/* Sidebar Desktop */}
       <aside className={`hidden md:flex flex-col bg-slate-900 text-white flex-shrink-0 transition-all duration-300 relative ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <button 
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -233,69 +236,104 @@ const App: React.FC = () => {
         </nav>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto max-h-screen">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-                {activeTab === 'dashboard' ? 'Olá Rose, boas vendas!' : activeTab === 'inventory' ? 'Meu Almoxarifado' : activeTab === 'repurchase' ? 'Hora de Recontato!' : 'Gestão'}
-            </h1>
+      {/* Main Content */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen w-full max-w-7xl mx-auto">
+        {/* Header Responsivo */}
+        <div className="flex flex-col gap-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                  {activeTab === 'dashboard' ? 'Olá Rose, boas vendas!' : activeTab === 'inventory' ? 'Meu Almoxarifado' : activeTab === 'repurchase' ? 'Hora de Recontato!' : 'Gestão'}
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">Acompanhe seu desempenho e metas.</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 md:self-center">
+              <button onClick={exportCSV} className="flex-1 md:flex-none justify-center bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-gray-50 transition">
+                <FileText size={18} className="text-[#920074]" /> 
+                <span className="text-sm">Exportar</span>
+              </button>
+              
+              {activeTab === 'inventory' ? (
+                  <button onClick={() => setIsInventoryFormOpen(true)} className="flex-1 md:flex-none justify-center bg-[#920074] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition">
+                    <PlusCircle size={18} /> <span className="text-sm">Novo Produto</span>
+                  </button>
+              ) : activeTab === 'leads' ? (
+                  <button onClick={() => setIsLeadFormOpen(true)} className="flex-1 md:flex-none justify-center bg-[#920074] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition">
+                    <UserPlus size={18} /> <span className="text-sm">Novo Pendente</span>
+                  </button>
+              ) : (
+                  <button onClick={() => setIsFormOpen(true)} className="flex-1 md:flex-none justify-center bg-[#920074] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition">
+                    <PlusCircle size={18} /> <span className="text-sm">Nova Venda</span>
+                  </button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {(activeTab === 'dashboard' || activeTab === 'sales') && (
-                <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
-                   <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                       <Calendar size={14} className="text-gray-400" />
-                       <span className="text-xs font-medium text-gray-500">Filtro</span>
-                   </div>
-                   <input 
-                       type="date" 
-                       value={dateFilter.start} 
-                       onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
-                       className="text-xs bg-transparent outline-none text-gray-900 w-24 md:w-auto"
-                   />
-                   <span className="text-gray-300">-</span>
-                   <input 
-                       type="date" 
-                       value={dateFilter.end} 
-                       onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
-                       className="text-xs bg-transparent outline-none text-gray-900 w-24 md:w-auto"
-                   />
-                </div>
-            )}
-            <button onClick={exportCSV} className="bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow hover:bg-gray-50 transition">
-              <FileText size={20} className="text-[#920074]" /> Exportar
-            </button>
-            {activeTab === 'inventory' ? (
-                <button onClick={() => setIsInventoryFormOpen(true)} className="bg-[#920074] text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition"><PlusCircle size={20} /> Novo Produto</button>
-            ) : activeTab === 'leads' ? (
-                <button onClick={() => setIsLeadFormOpen(true)} className="bg-[#920074] text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition"><UserPlus size={20} /> Novo Pendente</button>
-            ) : (
-                <button onClick={() => setIsFormOpen(true)} className="bg-[#920074] text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:bg-[#74005c] transition"><PlusCircle size={20} /> Nova Venda</button>
-            )}
-          </div>
+
+          {(activeTab === 'dashboard' || activeTab === 'sales') && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input 
+                    type="text" 
+                    placeholder="Buscar cliente ou produto..." 
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-[#920074] outline-none"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto no-scrollbar whitespace-nowrap">
+                 <Calendar size={14} className="text-[#920074] ml-1" />
+                 <input 
+                     type="date" 
+                     value={dateFilter.start} 
+                     onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
+                     className="text-xs bg-transparent outline-none text-gray-900 border-none focus:ring-0 p-0 w-28"
+                 />
+                 <span className="text-gray-300">até</span>
+                 <input 
+                     type="date" 
+                     value={dateFilter.end} 
+                     onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
+                     className="text-xs bg-transparent outline-none text-gray-900 border-none focus:ring-0 p-0 w-28"
+                 />
+              </div>
+            </div>
+          )}
         </div>
 
         {activeTab === 'dashboard' && (
             <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <StatsCard title="Lucro Líquido" value={formatCurrency(summary.totalNetProfit)} icon={Wallet} colorClass="bg-emerald-100 text-emerald-600" trend="Descontados custos e taxas" />
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
+                    <StatsCard title="Líquido" value={formatCurrency(summary.totalNetProfit)} icon={Wallet} colorClass="bg-emerald-100 text-emerald-600" />
                     <StatsCard title="Bruto" value={formatCurrency(summary.totalSales)} icon={DollarSign} colorClass="bg-[#fce7f6] text-[#920074]" />
-                    <StatsCard title="Total Frete" value={formatCurrency(summary.totalFreight)} icon={Truck} colorClass="bg-blue-100 text-blue-600" />
-                    <StatsCard title="Ticket Médio" value={formatCurrency(summary.averageTicket)} icon={TrendingUp} colorClass="bg-green-100 text-green-600" />
+                    <StatsCard title="Frete" value={formatCurrency(summary.totalFreight)} icon={Truck} colorClass="bg-blue-100 text-blue-600" />
+                    <StatsCard title="Ticket" value={formatCurrency(summary.averageTicket)} icon={TrendingUp} colorClass="bg-green-100 text-green-600" />
                     <StatsCard title="Vendas" value={summary.salesCount.toString()} icon={CreditCard} colorClass="bg-orange-100 text-orange-600" />
                     <StatsCard title="Comissões" value={formatCurrency(summary.totalCommission)} icon={Users} colorClass="bg-purple-100 text-purple-600" />
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">Volume por Produto</h3>
-                    <div className="h-64 w-full">
+                
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-800 mb-10">Ranking de Faturamento por Produto</h3>
+                    <div className="h-64 md:h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" tick={{fontSize: 12}} />
-                                <YAxis tickFormatter={(val) => `R$${val}`} />
-                                <RechartsTooltip />
-                                <Bar dataKey="value" fill="#920074" radius={[4, 4, 0, 0]}>
-                                    {chartData.map((_, i) => <Cell key={i} fill={['#920074', '#8B5CF6', '#10B981'][i % 3]} />)}
+                            <BarChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 40 }}>
+                                <XAxis 
+                                  dataKey="name" 
+                                  tick={{fontSize: 9, fill: '#64748b'}} 
+                                  axisLine={false} 
+                                  tickLine={false} 
+                                  interval={0}
+                                />
+                                <YAxis hide={true} />
+                                <Bar dataKey="value" fill="#920074" radius={[6, 6, 0, 0]} barSize={45}>
+                                    {chartData.map((_, i) => <Cell key={i} fill={['#920074', '#8B5CF6', '#10B981', '#3B82F6', '#F59E0B'][i % 5]} />)}
+                                    <LabelList 
+                                      dataKey="value" 
+                                      position="top" 
+                                      formatter={(val: number) => `R$${val.toFixed(0)}`} 
+                                      style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }}
+                                    />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
@@ -305,41 +343,43 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'inventory' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800">Itens em Estoque</h3>
-                    <div className="text-sm text-gray-500 flex items-center gap-2"><Info size={16} />Custo unitário calculado automaticamente no cadastro.</div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <h3 className="font-bold text-gray-800">Almoxarifado</h3>
+                    <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                      <Info size={14} className="text-blue-500" /> Custo médio calculado automaticamente.
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
+                        <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">Produto</th>
-                                <th className="px-6 py-4">Qtd. Atual</th>
-                                <th className="px-6 py-4">Custo Unitário</th>
-                                <th className="px-6 py-4">Preço Sugerido</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                                <th className="px-6 py-4">Estoque</th>
+                                <th className="px-6 py-4">Custo</th>
+                                <th className="px-6 py-4">Venda</th>
+                                <th className="px-6 py-4 text-right">Ação</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 text-sm">
                             {inventory.map(item => (
-                                <tr key={item.id} className="hover:bg-gray-50 transition">
-                                    <td className="px-6 py-4 font-bold text-gray-900">{item.productName}</td>
+                                <tr key={item.id} className="hover:bg-gray-50/50 transition">
+                                    <td className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">{item.productName}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${item.quantity < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${item.quantity < 5 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                             {item.quantity} un.
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 font-medium text-purple-700">{formatCurrency(item.costPrice)}</td>
-                                    <td className="px-6 py-4 text-gray-600">{item.defaultSellPrice ? formatCurrency(item.defaultSellPrice) : '-'}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-500 whitespace-nowrap">{formatCurrency(item.costPrice)}</td>
+                                    <td className="px-6 py-4 font-bold text-[#920074] whitespace-nowrap">{item.defaultSellPrice ? formatCurrency(item.defaultSellPrice) : '-'}</td>
                                     <td className="px-6 py-4 text-right">
-                                        <button onClick={() => handleDeleteProduct(item.id)} className="text-gray-300 hover:text-red-500 transition"><Trash2 size={18} /></button>
+                                        <button onClick={() => handleDeleteProduct(item.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                                     </td>
                                 </tr>
                             ))}
                             {inventory.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Nenhum produto cadastrado. Clique em "Novo Produto" para começar.</td>
+                                    <td colSpan={5} className="px-6 py-20 text-center text-gray-400 italic">Nenhum item cadastrado.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -349,106 +389,108 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'sales' && (
-            <div className="space-y-4">
-                <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input 
-                        type="text" 
-                        placeholder="Buscar venda..." 
-                        className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm w-full text-gray-900 focus:ring-2 focus:ring-[#920074] focus:outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                    <h3 className="font-bold text-gray-800">Histórico de Movimentações</h3>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100">
-                        <h3 className="font-bold text-gray-800">Histórico de Vendas</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
-                                <tr>
-                                    <th className="px-6 py-4">Cliente</th>
-                                    <th className="px-6 py-4">Produto</th>
-                                    <th className="px-6 py-4">Valor</th>
-                                    <th className="px-6 py-4">Lucro Líq.</th>
-                                    <th className="px-6 py-4">Data</th>
-                                    <th className="px-6 py-4 text-right">Ações</th>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+                            <tr>
+                                <th className="px-6 py-4">Data</th>
+                                <th className="px-6 py-4">Cliente</th>
+                                <th className="px-6 py-4">Produto</th>
+                                <th className="px-6 py-4">Bruto</th>
+                                <th className="px-6 py-4">Líquido</th>
+                                <th className="px-6 py-4 text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-sm">
+                            {filteredByDateSales.filter(s => 
+                              s.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              s.productName.toLowerCase().includes(searchTerm.toLowerCase())
+                            ).map(sale => {
+                                const adCost = sale.adCost || 0;
+                                const disc = sale.discount || 0;
+                                const profit = sale.amount - disc - sale.commissionValue - (sale.cost || 0) - (sale.freight || 0) - adCost;
+                                return (
+                                <tr key={sale.id} className="hover:bg-gray-50/50 transition">
+                                    <td className="px-6 py-4 text-gray-400 text-[11px] whitespace-nowrap">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">{sale.clientName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full font-bold text-slate-600">{sale.productName}</span>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap">{formatCurrency(sale.amount)}</td>
+                                    <td className="px-6 py-4 font-black text-emerald-600 whitespace-nowrap">{formatCurrency(profit)}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button onClick={() => db.deleteSale(sale.id).then(loadData)} className="p-2 text-gray-200 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredByDateSales.filter(s => s.clientName.toLowerCase().includes(searchTerm.toLowerCase())).map(sale => {
-                                    const adCost = sale.adCost || 0;
-                                    const disc = sale.discount || 0;
-                                    const profit = sale.amount - disc - sale.commissionValue - (sale.cost || 0) - (sale.freight || 0) - adCost;
-                                    return (
-                                    <tr key={sale.id} className="hover:bg-gray-50 transition">
-                                        <td className="px-6 py-4 font-medium text-gray-900">{sale.clientName}</td>
-                                        <td className="px-6 py-4"><span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700">{sale.productName}</span></td>
-                                        <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(sale.amount)}</td>
-                                        <td className="px-6 py-4 font-bold text-emerald-600">{formatCurrency(profit)}</td>
-                                        <td className="px-6 py-4 text-gray-400 text-xs">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => db.deleteSale(sale.id).then(loadData)} className="text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
-                                        </td>
-                                    </tr>
-                                )})}
-                            </tbody>
-                        </table>
-                    </div>
+                            )})}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         )}
 
         {activeTab === 'leads' && (
             <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 bg-amber-50 p-4 rounded-xl border border-amber-100">
-                  <Info size={16} className="text-amber-500" />
-                  Clientes cadastrados como <b>Pendente</b> são leads que ainda não compraram mas demonstraram interesse.
+                <div className="flex items-center gap-3 text-sm text-amber-700 bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                  <div className="bg-amber-100 p-2 rounded-lg"><Users size={18} /></div>
+                  <p><b>Leads:</b> Clientes que demonstraram interesse, mas ainda não converteram em venda.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {leads.map(lead => (
-                        <div key={lead.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition group">
+                        <div key={lead.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow group">
                             <div>
-                                <div className="flex justify-between mb-4">
-                                    <h4 className="font-bold text-gray-900 text-lg group-hover:text-[#920074] transition">{lead.clientName}</h4>
-                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold uppercase">Pendente</span>
+                                <div className="flex justify-between items-start mb-4">
+                                    <h4 className="font-bold text-gray-900 text-lg group-hover:text-[#920074] transition-colors">{lead.clientName}</h4>
+                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-black uppercase">Pendente</span>
                                 </div>
-                                <div className="space-y-2 text-sm text-gray-500">
-                                    <p className="flex items-center gap-2">🛍️ Interesse: <b className="text-gray-700">{lead.productInterest}</b></p>
-                                    {lead.phone && <p className="flex items-center gap-2">📞 {lead.phone}</p>}
-                                    {lead.expectedDate && <p className="text-orange-500 font-bold flex items-center gap-2">📅 Previsto: {new Date(lead.expectedDate).toLocaleDateString('pt-BR')}</p>}
-                                    {lead.notes && <p className="italic text-xs bg-gray-50 p-2 rounded">"{lead.notes}"</p>}
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <ShoppingCart size={14} className="text-[#920074]" />
+                                      <span>Interesse: <b className="text-gray-900">{lead.productInterest}</b></span>
+                                    </div>
+                                    {lead.phone && <div className="flex items-center gap-2 text-gray-600">
+                                      <DollarSign size={14} className="text-emerald-500" />
+                                      <span>{lead.phone}</span>
+                                    </div>}
+                                    {lead.expectedDate && <div className="flex items-center gap-2 text-orange-600 font-bold">
+                                      <Calendar size={14} />
+                                      <span>Previsão: {new Date(lead.expectedDate).toLocaleDateString('pt-BR')}</span>
+                                    </div>}
+                                    {lead.notes && <p className="italic text-xs text-gray-400 bg-gray-50 p-3 rounded-xl border border-gray-100 mt-2">"{lead.notes}"</p>}
                                 </div>
                             </div>
-                            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
-                                <button onClick={() => handleConvertLead(lead)} className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-100 flex items-center gap-1 transition">
+                            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center gap-2">
+                                <button onClick={() => handleConvertLead(lead)} className="flex-1 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-emerald-100 flex items-center justify-center gap-1.5 transition">
                                     <ShoppingCart size={16} /> Vender
                                 </button>
-                                <button onClick={() => db.deleteLead(lead.id).then(loadData)} className="text-gray-300 hover:text-red-500 transition"><Trash2 size={16} /></button>
+                                <button onClick={() => db.deleteLead(lead.id).then(loadData)} className="p-2.5 text-gray-300 hover:text-red-500 bg-gray-50 rounded-xl transition-colors"><Trash2 size={18} /></button>
                             </div>
                         </div>
                     ))}
                     {leads.length === 0 && (
-                        <div className="col-span-full py-12 text-center text-gray-400">Nenhum cliente pendente no momento.</div>
+                        <div className="col-span-full py-20 text-center text-gray-400 italic bg-white rounded-2xl border border-dashed border-gray-200">Sem leads pendentes no momento.</div>
                     )}
                 </div>
             </div>
         )}
 
         {activeTab === 'repurchase' && (
-            <div className="space-y-4">
-                <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 mb-6">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-purple-100 p-3 rounded-xl">
-                      <RefreshCw className="text-[#920074]" size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-800">Próximos passos de Recompra</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Estes clientes compraram há mais de <b>28 dias</b>. É o momento ideal para enviar um oi e perguntar se precisam de mais produtos!
-                      </p>
-                    </div>
+            <div className="space-y-6">
+                <div className="bg-gradient-to-br from-[#920074] to-[#74005c] p-6 md:p-8 rounded-3xl text-white shadow-xl overflow-hidden relative">
+                  <div className="relative z-10">
+                    <h3 className="text-xl md:text-2xl font-black mb-2 flex items-center gap-2">
+                      <RefreshCw className="animate-spin-slow" size={24} /> Ouro na Mão!
+                    </h3>
+                    <p className="text-white/80 text-sm md:text-base max-w-lg">
+                      Estes clientes compraram há mais de <b>28 dias</b>. Eles já conhecem a qualidade do seu produto, agora é só oferecer de novo!
+                    </p>
+                  </div>
+                  <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
+                    <RefreshCw size={150} />
                   </div>
                 </div>
 
@@ -458,45 +500,60 @@ const App: React.FC = () => {
                         const saleDate = new Date(sale.date);
                         const diffDays = Math.ceil(Math.abs(today.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24));
                         return (
-                            <div key={sale.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-purple-300 transition group">
+                            <div key={sale.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-[#920074]/30 transition group">
                                 <div>
                                     <div className="flex justify-between items-start mb-4">
                                         <h4 className="font-bold text-gray-900 text-lg">{sale.clientName}</h4>
-                                        <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-bold uppercase">{diffDays} dias atrás</span>
+                                        <span className="text-[10px] bg-purple-100 text-[#920074] px-2.5 py-1 rounded-full font-black uppercase">{diffDays} dias</span>
                                     </div>
-                                    <div className="space-y-2 text-sm text-gray-500">
-                                        <p>🛍️ Último Item: <b className="text-gray-700">{sale.productName}</b></p>
-                                        <p>📅 Última Compra: {new Date(sale.date).toLocaleDateString('pt-BR')}</p>
+                                    <div className="space-y-3 text-sm text-gray-500">
+                                        <p className="flex items-center gap-2">📦 <b className="text-gray-800">{sale.productName}</b></p>
+                                        <p className="flex items-center gap-2">📅 Última compra: <b>{new Date(sale.date).toLocaleDateString('pt-BR')}</b></p>
                                     </div>
                                 </div>
-                                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
+                                <div className="mt-6 pt-4 border-t border-gray-100">
                                     <button 
                                       onClick={() => {
                                         setSalesFormInitialData({ clientName: sale.clientName, productName: sale.productName });
                                         setIsFormOpen(true);
                                       }}
-                                      className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-purple-700 flex items-center gap-1 transition w-full justify-center"
+                                      className="w-full bg-[#920074] text-white px-4 py-3 rounded-xl font-bold text-xs hover:bg-[#74005c] flex items-center justify-center gap-2 shadow-lg transition transform active:scale-[0.98]"
                                     >
-                                        <RefreshCw size={16} /> Registrar Nova Venda
+                                        <RefreshCw size={16} /> Registrar Recompra
                                     </button>
                                 </div>
                             </div>
                         )
                     })}
                     {repurchaseList.length === 0 && (
-                        <div className="col-span-full py-12 text-center text-gray-400">Nenhum cliente para recompra por enquanto.</div>
+                        <div className="col-span-full py-20 text-center text-gray-400 italic bg-white rounded-2xl border border-dashed border-gray-200">Nenhum cliente no ciclo de recompra ainda.</div>
                     )}
                 </div>
             </div>
         )}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 z-50">
-        <button onClick={() => setActiveTab('dashboard')} className={`p-2 ${activeTab === 'dashboard' ? 'text-[#920074]' : 'text-gray-400'}`}><Home size={24} /></button>
-        <button onClick={() => setActiveTab('sales')} className={`p-2 ${activeTab === 'sales' ? 'text-[#920074]' : 'text-gray-400'}`}><CreditCard size={24} /></button>
-        <button onClick={() => setActiveTab('inventory')} className={`p-2 ${activeTab === 'inventory' ? 'text-[#920074]' : 'text-gray-400'}`}><Package size={24} /></button>
-        <button onClick={() => setActiveTab('leads')} className={`p-2 ${activeTab === 'leads' ? 'text-[#920074]' : 'text-gray-400'}`}><Users size={24} /></button>
-        <button onClick={() => setActiveTab('repurchase')} className={`p-2 ${activeTab === 'repurchase' ? 'text-[#920074]' : 'text-gray-400'}`}><RefreshCw size={24} /></button>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around items-center px-4 py-3 z-50 shadow-[0_-4px_20px_0_rgba(0,0,0,0.05)]">
+        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'dashboard' ? 'text-[#920074]' : 'text-gray-400'}`}>
+          <Home size={22} />
+          <span className="text-[10px] font-bold">Início</span>
+        </button>
+        <button onClick={() => setActiveTab('sales')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'sales' ? 'text-[#920074]' : 'text-gray-400'}`}>
+          <CreditCard size={22} />
+          <span className="text-[10px] font-bold">Vendas</span>
+        </button>
+        <button onClick={() => setActiveTab('inventory')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'inventory' ? 'text-[#920074]' : 'text-gray-400'}`}>
+          <Package size={22} />
+          <span className="text-[10px] font-bold">Estoque</span>
+        </button>
+        <button onClick={() => setActiveTab('leads')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'leads' ? 'text-[#920074]' : 'text-gray-400'}`}>
+          <Users size={22} />
+          <span className="text-[10px] font-bold">Leads</span>
+        </button>
+        <button onClick={() => setActiveTab('repurchase')} className={`flex flex-col items-center gap-1 transition ${activeTab === 'repurchase' ? 'text-[#920074]' : 'text-gray-400'}`}>
+          <RefreshCw size={22} />
+          <span className="text-[10px] font-bold">Recompra</span>
+        </button>
       </nav>
 
       {isFormOpen && <SalesForm onAddSale={handleAddSale} inventory={inventory} initialData={salesFormInitialData} onClose={() => { setIsFormOpen(false); setSalesFormInitialData(null); }} />}
