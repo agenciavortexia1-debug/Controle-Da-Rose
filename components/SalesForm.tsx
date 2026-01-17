@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Info } from 'lucide-react';
-import { Sale, SaleType, InventoryItem } from '../types.ts';
+import { X, Info } from 'lucide-react';
+import { Sale, SaleType, InventoryItem } from '../types';
 
 interface SalesFormProps {
   onAddSale: (sale: Sale) => void;
@@ -19,14 +19,13 @@ export const SalesForm: React.FC<SalesFormProps> = ({ onAddSale, onClose, invent
     productName: '',
     amount: '',
     freight: '',
-    commissionRate: '10', // Default 10%
+    commissionRate: '10',
     date: new Date().toISOString().split('T')[0],
     saleType: 'Instagram' as SaleType,
     adCost: '',
     discount: '',
   });
 
-  // Pre-fill from Lead or inventory defaults
   useEffect(() => {
     if (initialData) {
       const product = inventory.find(p => p.productName === initialData.productName);
@@ -39,7 +38,6 @@ export const SalesForm: React.FC<SalesFormProps> = ({ onAddSale, onClose, invent
     }
   }, [initialData, inventory]);
 
-  // Automatic cost retrieval
   const autoCost = useMemo(() => {
     const item = inventory.find(i => i.productName === formData.productName);
     return item ? item.costPrice : 0;

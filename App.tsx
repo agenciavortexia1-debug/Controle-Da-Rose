@@ -9,15 +9,12 @@ import {
   CreditCard, 
   Search, 
   Trash2, 
-  Download, 
   Package, 
   Loader2, 
-  Plus, 
   Home, 
   Wallet,
   Calendar,
   UserPlus,
-  Clock,
   RefreshCw,
   ShoppingCart,
   Info,
@@ -27,12 +24,12 @@ import {
   FileText
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Sale, SalesSummary, Lead, InventoryItem } from './types.ts';
-import { SalesForm } from './components/SalesForm.tsx';
-import { LeadForm } from './components/LeadForm.tsx';
-import { InventoryForm } from './components/InventoryForm.tsx';
-import { StatsCard } from './components/StatsCard.tsx';
-import * as db from './services/db.ts';
+import { Sale, SalesSummary, Lead, InventoryItem } from './types';
+import { SalesForm } from './components/SalesForm';
+import { LeadForm } from './components/LeadForm';
+import { InventoryForm } from './components/InventoryForm';
+import { StatsCard } from './components/StatsCard';
+import * as db from './services/db';
 
 const App: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -55,16 +52,21 @@ const App: React.FC = () => {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    setLoading(true);
-    const [salesData, leadsData, inventoryData] = await Promise.all([
-      db.getSales(),
-      db.getLeads(),
-      db.getInventory()
-    ]);
-    setSales(salesData);
-    setLeads(leadsData);
-    setInventory(inventoryData);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const [salesData, leadsData, inventoryData] = await Promise.all([
+        db.getSales(),
+        db.getLeads(),
+        db.getInventory()
+      ]);
+      setSales(salesData);
+      setLeads(leadsData);
+      setInventory(inventoryData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredByDateSales = useMemo(() => {
@@ -83,7 +85,6 @@ const App: React.FC = () => {
   const repurchaseList = useMemo(() => {
     const today = new Date();
     today.setHours(0,0,0,0);
-    // Agrupa por cliente para pegar a última compra
     const lastSalesByClient: Record<string, Sale> = {};
     sales.forEach(sale => {
       if (!lastSalesByClient[sale.clientName] || new Date(sale.date) > new Date(lastSalesByClient[sale.clientName].date)) {
@@ -95,7 +96,7 @@ const App: React.FC = () => {
         const saleDate = new Date(sale.date);
         saleDate.setHours(0,0,0,0);
         const diffDays = Math.ceil(Math.abs(today.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24)); 
-        return diffDays >= 28; // Considerar recompra após 28 dias
+        return diffDays >= 28;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [sales]);
 
@@ -490,7 +491,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Mobile Nav */}
       <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 z-50">
         <button onClick={() => setActiveTab('dashboard')} className={`p-2 ${activeTab === 'dashboard' ? 'text-[#920074]' : 'text-gray-400'}`}><Home size={24} /></button>
         <button onClick={() => setActiveTab('sales')} className={`p-2 ${activeTab === 'sales' ? 'text-[#920074]' : 'text-gray-400'}`}><CreditCard size={24} /></button>

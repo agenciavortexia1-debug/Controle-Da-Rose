@@ -1,16 +1,13 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Sale, Lead, InventoryItem } from '../types.ts';
+import { Sale, Lead, InventoryItem } from '../types';
 
 const SUPABASE_URL = 'https://xjmtxshvpwcyrfbxsmpj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbXR4c2h2cHdjeXJmYnhzbXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MTIyNDksImV4cCI6MjA4NDE4ODI0OX0.Qlo4xPAhPtRFRzkcC7p-aoHTDCdEdnmTuuzTOXynYRQ';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper para garantir que campos do Supabase (NUMERIC) sejam tratados como números no JS
 const toNum = (val: any) => val === null || val === undefined ? 0 : Number(val);
-
-// --- MÉTODOS DE VENDAS ---
 
 export const getSales = async (): Promise<Sale[]> => {
   try {
@@ -19,10 +16,7 @@ export const getSales = async (): Promise<Sale[]> => {
       .select('*')
       .order('date', { ascending: false });
 
-    if (error) {
-      console.error('Erro Detalhado Supabase Sales:', error.message, error.details, error.hint);
-      return [];
-    }
+    if (error) throw error;
 
     return (data || []).map(item => ({
       id: item.id,
@@ -39,8 +33,7 @@ export const getSales = async (): Promise<Sale[]> => {
       adCost: toNum(item.ad_cost),
       discount: toNum(item.discount)
     })) as Sale[];
-  } catch (err: any) {
-    console.error('Erro fatal ao buscar vendas:', err.message);
+  } catch (err) {
     return [];
   }
 };
@@ -49,7 +42,7 @@ export const addSale = async (sale: Sale): Promise<Sale> => {
   const { data, error } = await supabase
     .from('sales')
     .insert([{
-      id: sale.id, // Mantém o ID gerado no frontend para sincronia
+      id: sale.id,
       client_name: sale.clientName,
       product_name: sale.productName,
       amount: sale.amount,
@@ -66,19 +59,13 @@ export const addSale = async (sale: Sale): Promise<Sale> => {
     .select()
     .single();
 
-  if (error) {
-    console.error('Erro ao adicionar venda:', error.message);
-    throw error;
-  }
+  if (error) throw error;
   return data as unknown as Sale;
 };
 
 export const deleteSale = async (id: string): Promise<void> => {
-  const { error } = await supabase.from('sales').delete().eq('id', id);
-  if (error) console.error('Erro ao deletar venda:', error.message);
+  await supabase.from('sales').delete().eq('id', id);
 };
-
-// --- MÉTODOS DE LEADS ---
 
 export const getLeads = async (): Promise<Lead[]> => {
   try {
@@ -87,10 +74,7 @@ export const getLeads = async (): Promise<Lead[]> => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Erro Supabase Leads:', error.message);
-      return [];
-    }
+    if (error) throw error;
     
     return (data || []).map(item => ({
       id: item.id,
@@ -130,8 +114,6 @@ export const deleteLead = async (id: string): Promise<void> => {
   await supabase.from('leads').delete().eq('id', id);
 };
 
-// --- MÉTODOS DE ESTOQUE ---
-
 export const getInventory = async (): Promise<InventoryItem[]> => {
   try {
     const { data, error } = await supabase
@@ -139,10 +121,7 @@ export const getInventory = async (): Promise<InventoryItem[]> => {
       .select('*')
       .order('product_name', { ascending: true });
 
-    if (error) {
-      console.error('Erro Supabase Inventory:', error.message);
-      return [];
-    }
+    if (error) throw error;
     
     return (data || []).map(item => ({
       id: item.id,
